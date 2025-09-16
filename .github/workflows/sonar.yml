@@ -34,8 +34,8 @@ jobs:
         uses: sonarsource/sonarcloud-github-action@v2.2
         with:
           args: >
-            -Dsonar.organization=your_org
-            -Dsonar.projectKey=your_project_key
+            -Dsonar.organization=vatsal007jiit
+            -Dsonar.projectKey=vatsal007jiit_test
             -Dsonar.sources=src
             -Dsonar.tests=src
             -Dsonar.test.inclusions=**/*.spec.ts
