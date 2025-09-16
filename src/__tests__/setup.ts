@@ -1,5 +1,5 @@
 // Test setup file
-import mongoose from 'mongoose';
+// import mongoose from 'mongoose';
 
 // Mock mongoose connection
 jest.mock('mongoose', () => ({
