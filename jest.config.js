@@ -19,4 +19,12 @@ module.exports = {
     '<rootDir>/src/__tests__/setup.ts',
     '<rootDir>/src/__tests__/utils/testUtils.ts',
   ],
+  globals: {
+    'ts-jest': {
+      tsconfig: {
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+      },
+    },
+  },
 };
