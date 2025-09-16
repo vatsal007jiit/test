@@ -6,11 +6,11 @@ export class BaseProductDto {
     @IsNotEmpty()
     @MinLength(1)
     @MaxLength(100)
-    title: string;
+    title!: string;
 
     @IsNumber()
     @Min(0)
-    price: number;
+    price!: number;
 
     @IsOptional()
     @IsNumber()
