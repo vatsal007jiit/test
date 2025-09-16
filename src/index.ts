@@ -13,6 +13,7 @@ import productRouter from "./router/product.router"
 import cookieParser from "cookie-parser";
 
 const app = express()
+app.disable("x-powered-by")
 app.listen(process.env.port || 8080)
 
 app.use(cors({

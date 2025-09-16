@@ -4,7 +4,7 @@ describe('Product Model', () => {
   it('should export ProductModel', () => {
     // Assert
     expect(ProductModel).toBeDefined();
-    expect(typeof ProductModel).toBe('object');
+    expect(typeof ProductModel).toBe('function');
   });
 
   it('should have model name', () => {
@@ -38,7 +38,7 @@ describe('Product Model', () => {
     const schema = ProductModel.schema;
     expect(schema.paths.title.isRequired).toBe(true);
     expect(schema.paths.price.isRequired).toBe(true);
-    expect(schema.paths.discount.isRequired).toBe(false);
+    expect(schema.paths.discount.isRequired).toBeUndefined(); // Optional fields don't have isRequired property
   });
 
   it('should have default value for discount', () => {
