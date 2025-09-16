@@ -4,7 +4,13 @@ module.exports = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        experimentalDecorators: true,
+        emitDecoratorMetadata: true,
+        strictPropertyInitialization: false,
+      },
+    }],
   },
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -19,12 +25,7 @@ module.exports = {
     '<rootDir>/src/__tests__/setup.ts',
     '<rootDir>/src/__tests__/utils/testUtils.ts',
   ],
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        experimentalDecorators: true,
-        emitDecoratorMetadata: true,
-      },
-    },
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
 };
