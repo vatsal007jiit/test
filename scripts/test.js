@@ -48,3 +48,4 @@ if (testCommands[testType]) {
   console.log('Run "npm run test:help" for available options');
   process.exit(1);
 }
+

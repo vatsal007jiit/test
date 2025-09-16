@@ -20,6 +20,11 @@ jest.mock('mongoose', () => ({
       isValid: jest.fn(),
     },
   },
+  default: {
+    Types: {
+      ObjectId: jest.fn().mockImplementation((id) => ({ toString: () => id })),
+    },
+  },
 }));
 
 // Mock ValidationService completely
@@ -194,6 +199,45 @@ describe('Product Controller - Passing Tests', () => {
   });
 
   describe('updateProduct', () => {
+    it('should update product successfully with valid data', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      const updateData = {
+        title: 'Updated Product',
+        price: 200,
+        discount: 15,
+      };
+      const updatedProduct = {
+        _id: productId,
+        ...updateData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      mockReq.params = { id: productId };
+      mockReq.body = updateData;
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ValidationService.validateDto as jest.Mock).mockResolvedValue({
+        isValid: true,
+        dto: updateData,
+        errors: [],
+      });
+      (ProductModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(updatedProduct);
+
+      // Act
+      await updateProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ValidationService.validateDto).toHaveBeenCalled();
+      expect(ProductModel.findByIdAndUpdate).toHaveBeenCalled();
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Product updated successfully',
+        data: updatedProduct,
+      });
+    });
+
     it('should return error for invalid product ID', async () => {
       // Arrange
       const invalidId = 'invalid-id';
@@ -213,9 +257,132 @@ describe('Product Controller - Passing Tests', () => {
         message: 'Invalid product ID format',
       });
     });
+
+    it('should return validation error for invalid update data', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      const invalidData = {
+        title: '', // Invalid: empty title
+        price: -50, // Invalid: negative price
+      };
+      
+      mockReq.params = { id: productId };
+      mockReq.body = invalidData;
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ValidationService.validateDto as jest.Mock).mockResolvedValue({
+        isValid: false,
+        dto: invalidData,
+        errors: [
+          { field: 'title', message: 'Title is required', value: '' },
+          { field: 'price', message: 'Price must be non-negative', value: -50 },
+        ],
+      });
+
+      // Act
+      await updateProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ValidationService.validateDto).toHaveBeenCalled();
+      expect(ProductModel.findByIdAndUpdate).not.toHaveBeenCalled();
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Validation failed',
+        errors: [
+          'title: Title is required',
+          'price: Price must be non-negative',
+        ],
+      });
+    });
+
+    it('should return 404 when product not found', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      const updateData = { title: 'Updated Product' };
+      
+      mockReq.params = { id: productId };
+      mockReq.body = updateData;
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ValidationService.validateDto as jest.Mock).mockResolvedValue({
+        isValid: true,
+        dto: updateData,
+        errors: [],
+      });
+      (ProductModel.findByIdAndUpdate as jest.Mock).mockResolvedValue(null);
+
+      // Act
+      await updateProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ValidationService.validateDto).toHaveBeenCalled();
+      expect(ProductModel.findByIdAndUpdate).toHaveBeenCalled();
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Product Not Found',
+      });
+    });
+
+    it('should handle database update errors', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      const updateData = { title: 'Updated Product' };
+      
+      mockReq.params = { id: productId };
+      mockReq.body = updateData;
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ValidationService.validateDto as jest.Mock).mockResolvedValue({
+        isValid: true,
+        dto: updateData,
+        errors: [],
+      });
+      
+      const error = new Error('Database update failed');
+      (ProductModel.findByIdAndUpdate as jest.Mock).mockRejectedValue(error);
+
+      // Act
+      await updateProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Internal server error',
+      });
+    });
   });
 
   describe('deleteProduct', () => {
+    it('should delete product successfully', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      const deletedProduct = {
+        _id: productId,
+        title: 'Product to Delete',
+        price: 100,
+        discount: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      mockReq.params = { id: productId };
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ProductModel.findByIdAndDelete as jest.Mock).mockResolvedValue(deletedProduct);
+
+      // Act
+      await deleteProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ProductModel.findByIdAndDelete).toHaveBeenCalled();
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Product deleted successfully',
+      });
+    });
+
     it('should return error for invalid product ID', async () => {
       // Arrange
       const invalidId = 'invalid-id';
@@ -232,6 +399,50 @@ describe('Product Controller - Passing Tests', () => {
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith({
         message: 'Invalid product ID format',
+      });
+    });
+
+    it('should return 404 when product not found', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      
+      mockReq.params = { id: productId };
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      (ProductModel.findByIdAndDelete as jest.Mock).mockResolvedValue(null);
+
+      // Act
+      await deleteProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ProductModel.findByIdAndDelete).toHaveBeenCalled();
+      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Product Not Found',
+      });
+    });
+
+    it('should handle database deletion errors', async () => {
+      // Arrange
+      const productId = '507f1f77bcf86cd799439011';
+      
+      mockReq.params = { id: productId };
+      
+      (mongoose.Types.ObjectId.isValid as jest.Mock).mockReturnValue(true);
+      
+      const error = new Error('Database deletion failed');
+      (ProductModel.findByIdAndDelete as jest.Mock).mockRejectedValue(error);
+
+      // Act
+      await deleteProduct(mockReq as Request, mockRes as Response);
+
+      // Assert
+      expect(mongoose.Types.ObjectId.isValid).toHaveBeenCalledWith(productId);
+      expect(ProductModel.findByIdAndDelete).toHaveBeenCalled();
+      expect(mockRes.status).toHaveBeenCalledWith(500);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Internal server error',
       });
     });
   });

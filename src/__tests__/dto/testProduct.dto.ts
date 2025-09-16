@@ -10,3 +10,4 @@ export class TestUpdateProductDto {
   price?: number;
   discount?: number;
 }
+
