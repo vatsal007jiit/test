@@ -60,23 +60,23 @@ describe('Auth Model', () => {
     // Assert
     const schema = AuthModel.schema;
     const emailPath = schema.paths.email;
-    expect(emailPath.options.match).toBeDefined();
-    expect(Array.isArray(emailPath.options.match)).toBe(true);
-    expect(emailPath.options.match).toHaveLength(2);
+    expect(emailPath.options.validate).toBeDefined();
+    expect(emailPath.options.validate.validator).toBeDefined();
+    expect(typeof emailPath.options.validate.validator).toBe('function');
     
-    // Test email regex
-    const emailRegex = emailPath.options.match[0];
-    expect(emailRegex.test('test@example.com')).toBe(true);
-    expect(emailRegex.test('invalid-email')).toBe(false);
-    expect(emailRegex.test('test@')).toBe(false);
-    expect(emailRegex.test('@example.com')).toBe(false);
+    // Test email validator function
+    const emailValidator = emailPath.options.validate.validator;
+    expect(emailValidator('test@example.com')).toBe(true);
+    expect(emailValidator('invalid-email')).toBe(false);
+    expect(emailValidator('test@')).toBe(false);
+    expect(emailValidator('@example.com')).toBe(false);
   });
 
   it('should have email validation message', () => {
     // Assert
     const schema = AuthModel.schema;
     const emailPath = schema.paths.email;
-    expect(emailPath.options.match[1]).toBe('Please enter a valid email');
+    expect(emailPath.options.validate.message).toBe('Please enter a valid email');
   });
 
   it('should have pre-save middleware configured', () => {
@@ -125,7 +125,8 @@ describe('Auth Model', () => {
     // Email field configuration
     expect(schema.paths.email.options.type).toBe(String);
     expect(schema.paths.email.options.required).toBe(true);
-    expect(schema.paths.email.options.match).toBeDefined();
+    expect(schema.paths.email.options.validate).toBeDefined();
+    expect(schema.paths.email.options.maxlength).toBe(254);
     
     // Password field configuration
     expect(schema.paths.password.options.type).toBe(String);
@@ -144,21 +145,28 @@ describe('Auth Model', () => {
     // Assert
     const schema = AuthModel.schema;
     const emailPath = schema.paths.email;
-    const emailRegex = emailPath.options.match[0];
+    const emailValidator = emailPath.options.validate.validator;
     
     // Valid email formats
-    expect(emailRegex.test('user@example.com')).toBe(true);
-    expect(emailRegex.test('test.email@domain.co.uk')).toBe(true);
-    expect(emailRegex.test('user+tag@example.org')).toBe(true);
-    expect(emailRegex.test('123@456.com')).toBe(true);
+    expect(emailValidator('user@example.com')).toBe(true);
+    expect(emailValidator('test.email@domain.co.uk')).toBe(true);
+    expect(emailValidator('user+tag@example.org')).toBe(true);
+    expect(emailValidator('123@456.com')).toBe(true);
+    expect(emailValidator('user.name@domain.co.uk')).toBe(true);
+    expect(emailValidator('test_email@example-domain.com')).toBe(true);
     
     // Invalid email formats
-    expect(emailRegex.test('invalid-email')).toBe(false);
-    expect(emailRegex.test('user@')).toBe(false);
-    expect(emailRegex.test('@example.com')).toBe(false);
-    expect(emailRegex.test('user@.com')).toBe(false);
-    // Note: The current regex /^\S+@\S+\.\S+$/ allows double dots, so this test expects true
-    expect(emailRegex.test('user..email@example.com')).toBe(true);
-    expect(emailRegex.test('')).toBe(false);
+    expect(emailValidator('invalid-email')).toBe(false);
+    expect(emailValidator('user@')).toBe(false);
+    expect(emailValidator('@example.com')).toBe(false);
+    expect(emailValidator('user@.com')).toBe(false);
+    expect(emailValidator('user..email@example.com')).toBe(true); // Current regex allows double dots
+    expect(emailValidator('user@domain')).toBe(false); // Missing TLD
+    expect(emailValidator('user@domain.c')).toBe(false); // TLD too short
+    expect(emailValidator('')).toBe(false);
+    
+    // Test length limit (ReDoS protection)
+    const longEmail = 'a'.repeat(250) + '@example.com'; // 262 characters total
+    expect(emailValidator(longEmail)).toBe(false); // Should be rejected due to length
   });
 });

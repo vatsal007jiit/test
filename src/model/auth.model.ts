@@ -1,6 +1,16 @@
 import { model, Schema } from "mongoose";
 import bcrypt from "bcrypt"
 
+// ReDoS-safe email validation function
+const isValidEmail = (email: string): boolean => {
+    // Check length first to prevent ReDoS
+    if (!email || email.length > 254) return false;
+    
+    // Simple regex without nested quantifiers
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+};
+
 const authSchema = new Schema({
     name: {
         type: String,
@@ -11,7 +21,11 @@ const authSchema = new Schema({
     email: {
        type: String,
        required: true,
-       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email']
+       maxlength: 254, // RFC 5321 limit
+       validate: {
+           validator: isValidEmail,
+           message: 'Please enter a valid email'
+       }
     },
     password: {
         type: String,
